@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<!-- saved from url=(0202)https://ders.eba.gov.tr/ders/BASE_URL/LEARNING_OBJECT/REPOSITORY/7/73bf2b1e8934d8dcca11342a7f45a256/4/Tema_1_Etkinlik_2.html?params=skin%21circle_white%2CstageBackground%21262D3A%2CuserType%21instructor -->
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+
+	<meta name="forceietoedge" content="IE=Edge" http-equiv="X-UA-Compatible">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0">
+    
+    <!-- Scorm dosyaları dahil edilmelidir -->
+	<script type="text/javascript" src="./APIWrapper.js.download"></script>
+    <script type="text/javascript" src="./scormfs.js.download"></script>
+    <!--------------------------------------->
+
+    <script src="./createjs.min.js.download"></script>
+<script type="text/javascript" src="./jquery-1.7.1.min.js.download"></script>
+<link href="./html_scorm_1_2_example.css" rel="stylesheet" type="text/css">
+
+<meta name="authoring-tool" content="Adobe_Animate_CC">
+<title>Tema_1_Etkinlik_2</title>
+<!-- write your code here -->
+<style>
+  #animation_container {
+	position:absolute;
+	margin:auto;
+	left:0;right:0;
+	top:0;bottom:0;
+  }
+  @font-face {
+  font-family: Myriad Pro bold;
+  src: url(MyriadPro-Bold.otf);
+}
+body{
+font-family: MyriadPro-Bold.otf !important;
+}
+</style>
+<script src="./createjs.min.js.download"></script>
+<script src="./Tema_1_Etkinlik_2.js.download"></script>
+<script>
+var canvas, stage, exportRoot, anim_container, dom_overlay_container, fnStartAnimation;
+function init() {
+	canvas = document.getElementById("canvas");
+	anim_container = document.getElementById("animation_container");
+	dom_overlay_container = document.getElementById("dom_overlay_container");
+	var comp=AdobeAn.getComposition("0C31A7D9D022CB49A93F756DF7B76CED");
+	var lib=comp.getLibrary();
+	var loader = new createjs.LoadQueue(false, null, true);
+	loader.addEventListener("fileload", function(evt){handleFileLoad(evt,comp)});
+	loader.addEventListener("complete", function(evt){handleComplete(evt,comp)});
+	var lib=comp.getLibrary();
+	loader.loadManifest(lib.properties.manifest);
+}
+function handleFileLoad(evt, comp) {
+	var images=comp.getImages();	
+	if (evt && (evt.item.type == "image")) { images[evt.item.id] = evt.result; }	
+}
+function handleComplete(evt,comp) {
+	//This function is always called, irrespective of the content. You can use the variable "stage" after it is created in token create_stage.
+	var lib=comp.getLibrary();
+	var ss=comp.getSpriteSheet();
+	var queue = evt.target;
+	var ssMetadata = lib.ssMetadata;
+	for(i=0; i<ssMetadata.length; i++) {
+		ss[ssMetadata[i].name] = new createjs.SpriteSheet( {"images": [queue.getResult(ssMetadata[i].name)], "frames": ssMetadata[i].frames} )
+	}
+	exportRoot = new lib.Tema_1_Etkinlik_2();
+	stage = new lib.Stage(canvas);
+	stage.enableMouseOver();	
+	//Registers the "tick" event listener.
+	fnStartAnimation = function() {
+		stage.addChild(exportRoot);
+		createjs.Ticker.framerate = lib.properties.fps;
+		createjs.Ticker.addEventListener("tick", stage);
+	}	    
+	//Code to support hidpi screens and responsive scaling.
+	AdobeAn.makeResponsive(true,'both',false,1,[canvas,anim_container,dom_overlay_container]);	
+	AdobeAn.compositionLoaded(lib.properties.id);
+	fnStartAnimation();
+}
+</script>
+<!-- write your code here -->
+
+</head>
+
+<body onload="init();" style="margin:0px;">
+	<div id="animation_container" style="background-color: rgb(255, 255, 255); width: 995.556px; height: 560px;">
+		<canvas id="canvas" width="933" height="525" style="position: absolute; display: block; background-color: rgb(255, 255, 255); width: 995.556px; height: 560px;"></canvas>
+		<div id="dom_overlay_container" style="pointer-events: none; overflow: hidden; width: 995.556px; height: 560px; position: absolute; left: 0px; top: 0px; display: block;">
+		</div>
+	</div>
+	<script>
+
+        /*body yüklendiğinde çağırılmalıdır*/
+        doLMSInitialize();
+        if(doLMSGetValue("cmi.core.lesson_status") == "not attempted")
+        {
+            doLMSSetValue("cmi.core.lesson_status", "incompleted");
+            doLMSCommit();
+        }
+        /***********************************/
+
+       
+        function slaytbitti() {   
+             
+
+             /*Etkinlik tamamlandığında çağırılmalıdır*/
+             if(LMSIsInitialized())
+             {
+                 doLMSSetValue("cmi.core.lesson_status", "completed");
+                 doLMSCommit();
+             }
+             /*****************************************/
+
+         }
+
+         /*Tarayıcı ya da iframe kapatıldığında tetiklenir*/
+        window.addEventListener("unload", function(e)
+        {
+            console.info("onunload called!");
+            if (LMSIsInitialized()) {
+                doLMSFinish();
+            }
+        });
+        
+        window.addEventListener("beforeunload", function(e)
+        {
+            console.info("onunload called!");
+            if (LMSIsInitialized()) {
+                doLMSFinish();
+            }
+        });
+        /**************************************************/
+
+    </script>
+
+<div id="preloadjs-container" style="visibility: hidden; position: absolute; height: 10px; width: 10px; overflow: hidden; transform: translate(-10px, -10px);"></div>
+
+<audio controls autoplay>
+
+  <source src="ani.mp3" type="audio/mpeg">
+
+</audio>
+</body></html>

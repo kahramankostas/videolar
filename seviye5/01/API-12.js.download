@@ -1,0 +1,888 @@
+// previously, Object.prototype.clone was used for clone() method
+// however, the code conflicted with JQuery, since JQuery handles
+// the prototype object very deeply, and defines its own clone
+// methods. to provide interoperability with all js libraries,
+// the clone method is written as a standalone method.
+var ObjectHandler = {
+
+	// use this method for convenience
+	clone: function(original){
+		return (this instanceof Array) ? this.getCloneOfArray(original) : this.getCloneOfObject(original);
+	},
+
+	// private method
+	getCloneOfObject: function(oldObject){
+		var tempClone = {};
+
+		if (typeof(oldObject) == "object")
+			for (prop in oldObject)
+				// for array use private method getCloneOfArray
+				if ((typeof(oldObject[prop]) == "object") &&
+					(oldObject[prop]).__isArray)
+					tempClone[prop] = this.getCloneOfArray(oldObject[prop]);
+				// for object make recursive call to getCloneOfObject
+				else
+				if (typeof(oldObject[prop]) == "object")
+					tempClone[prop] = this.getCloneOfObject(oldObject[prop]);
+				// normal (non-object type) members
+				else
+					tempClone[prop] = oldObject[prop];
+
+		return tempClone;
+	},
+
+	//private method (to copy array of objects) - getCloneOfObject will use this internally
+	getCloneOfArray: function(oldArray){
+		var tempClone = [];
+
+		for (var arrIndex = 0; arrIndex <= oldArray.length; arrIndex++)
+			if (typeof(oldArray[arrIndex]) == "object")
+				tempClone.push(this.getCloneOfObject(oldArray[arrIndex]));
+			else
+				tempClone.push(oldArray[arrIndex]);
+
+		return tempClone;
+	}
+};
+
+function SCORM_API_12 () {
+
+	/////// PRIVATE ///////
+
+	/**
+	 * SCORM Version Identifier
+	 */
+	var version = "SCORM 1.2";
+
+	/**
+	 * API Initialization Identifier
+	 */
+	var isInitialized = false;
+	var isCompleted= false;
+	var usageScoreId= "";
+	var usageScoreValue= -1;
+
+	/**
+	 * The SCORM 1.2 Data Model, with user data
+	 */
+	var dataModel = null;
+
+	var scoId = "";
+
+	/**
+	 * Indicates that the API request is an LMSFinish request
+	 */
+	var isFinishRequest = false;
+
+	/**
+	 * Last Error Code Handler
+	 */
+	var lastErrorCode = "0";
+	var lastUpdatedElement = "";
+
+	/**
+	 * SCORM Standard Error Codes
+	 */
+	var ERRORCODE_0 = "0";
+	var ERRORCODE_101 = "101";
+	var ERRORCODE_201 = "201";
+	var ERRORCODE_202 = "202";
+	var ERRORCODE_203 = "203";
+	var ERRORCODE_301 = "301";
+	var ERRORCODE_401 = "401";
+	var ERRORCODE_402 = "402";
+	var ERRORCODE_403 = "403";
+	var ERRORCODE_404 = "404";
+	var ERRORCODE_405 = "405";
+
+	/**
+	 * SCORM Standard Error Messages
+	 */
+	var ERROR_MESSAGES = new Array(11);
+	ERROR_MESSAGES["0"] 	= "No Error";
+	ERROR_MESSAGES["101"] 	= "General Exception";
+	ERROR_MESSAGES["201"] 	= "Invalid Argument";
+	ERROR_MESSAGES["202"] 	= "Element cannot have children";
+	ERROR_MESSAGES["203"] 	= "Element is not an array. Cannot have count.";
+	ERROR_MESSAGES["301"] 	= "Not Initialized";
+	ERROR_MESSAGES["401"] 	= "Not Implemented";
+	ERROR_MESSAGES["402"] 	= "Invalid set value, element is a keyword";
+	ERROR_MESSAGES["403"] 	= "Element is read-only";
+	ERROR_MESSAGES["404"] 	= "Element is write only";
+	ERROR_MESSAGES["405"]	= "Incorrect data type";
+
+	// debugMode: displays all LMS communication in the browser (console or alert windows)
+	var debugMode = false;
+	// testMode: displays all LMS errors in alert windows
+	var testMode = false;
+
+	var maxAlerts = 3;    // maximum number of testMode alerts
+	var numberOfAlerts = 0;    // current number of testMode alerts
+
+	var httpReq = false;
+	var isMozilla = false;
+	var redirectURL = "";
+
+	var __trialsLeft = 3; // maximum number of xmlhttprequest trials
+	var retryDelayTime = 250; // wait for xmlhttprequest retry, in milliseconds
+
+	// in firefox, sometimes, the second call to httpReq.open() method fails
+	// and returns an error code of 0x80004005
+	// proposed solution was to create XMLHttpRequest on each call
+	// (http://www.thescripts.com/forum/thread150509.html)
+	// this method is written to fix that problem
+	// at the beginning of each API call, XMLHttpRequest object is re-created
+	function _init() {
+		// Initialize the XMLHttpRequest channel
+
+		if (window.XMLHttpRequest)
+		{
+			httpReq = new XMLHttpRequest();
+			this.isMozilla = true;
+		}
+		// code for IE
+		else if (window.ActiveXObject)
+		{
+			try {
+				httpReq = new ActiveXObject("Msxml2.XMLHTTP");
+			} catch (e) {
+				try {
+					httpReq = new ActiveXObject("Microsoft.XMLHTTP");
+				} catch (E) {
+					httpReq = false;
+				}
+			}
+		}
+		// end channel initialization
+	}
+
+	/**
+	 * Generic XMLHttpRequest method
+	 *
+	 * @param {Object} query
+	 */
+	function doRequest (url, query) {
+
+		_init();
+		try {
+			// send request
+			httpReq.open('POST', url, false );
+			httpReq.setRequestHeader('Content-Type','application/x-www-form-urlencoded');
+			httpReq.send(query);
+		} catch (e) {
+			if(e.name == 'NetworkError') {
+				if(__trialsLeft > 0) {
+					// retry only on network errors
+					--__trialsLeft;
+					setTimeout(doRequest.bind(null, url, query), retryDelayTime);
+				} else {
+					// fire exception event so that it can be logged to somewhere (hopefully to GA)
+					$('body').trigger("gaEventTriggered", {
+						"category": "scormApi",
+						"action": "scormRequestErrorNoTrialsLeft",
+						"label" : "ERROR: " + e + " -- cookie : " + getCookie("checkSid")
+					});
+				}
+			} else {
+				throw e;
+			}
+		}
+
+		return httpReq.responseText;
+	}
+
+	function setErrorCode(errorCode) {
+		alertError(errorCode);
+		lastErrorCode = errorCode;
+	}
+
+	function resetErrorCode() {
+		lastErrorCode = ERRORCODE_0;
+	}
+
+	function getDataModel() {
+		_init();
+		// send request
+		var query = "op=gd";
+		var temp = "";
+		try {
+			var result = doRequest(redirectURL, query);
+
+			var decoded = SebitBase64.decode(result);
+
+
+			temp = JSON.parse(decoded, function (key, value) {
+				return value;
+			});
+		} catch (e) {
+			$('body').trigger("gaEventTriggered", {
+				"category": "scormApi",
+				"action": "scormGetDataModelError",
+				"label" : "ERROR: " + e + " -- result : " + result +  " -- cookie : " + getCookie("checkSid")
+			});
+		}
+
+
+		return temp;
+	}
+
+	function commitChanges(str) {
+		_init();
+
+		var result = "false";
+		try {
+			// send request
+			var query = "op=sd&dm=" + str + "&s=" + scoId + "&f=" + isFinishRequest+"&c=" + isCompleted+ "&us=" + usageScoreValue;
+			result = doRequest(redirectURL, query);
+
+			isFinishRequest = false;
+			isCompleted = false;
+		} catch (e) {
+			$('body').trigger("gaEventTriggered", {
+				"category": "scormApi",
+				"action": "scormCommitChangesError",
+				"label" : "ERROR: " + e + " -- result : " + result + " -- cookie : " + getCookie("checkSid")
+			});
+		}
+
+
+		return result; // return a boolean value --> changed to string
+	}
+
+
+	function getElementIndex(elmt) {
+		var r2 = new RegExp("\\w*[.](\\d+)[.]\\w+");
+		return String(elmt).match(r2)[1];
+	}
+
+	function isElementKeyword(elmt) {
+		var r = new RegExp("_children$|_count$");
+		return (String(elmt).match(r) != null && String(elmt).match(r)[0] != undefined && String(elmt).match(r)[0] != "");
+	}
+
+	function checkElementCount(elmt) {
+		var obj = new RegExp("^cmi.objectives.(\\d+).\\w+");
+		var int_cr = new RegExp("^cmi.interactions.(\\d+).correct_responses.(\\d+).\\w+");
+		var int_obj = new RegExp("^cmi.interactions.(\\d+).objectives.(\\d+).\\w+");
+		var int_ = new RegExp("^cmi.interactions.(\\d+).\\w+");
+
+		var retVal = 0;
+
+		var objMatch = String(elmt).match(obj);
+		var int_crMatch = String(elmt).match(int_cr);
+		var int_objMatch = String(elmt).match(int_obj);
+		var int_Match = String(elmt).match(int_);
+
+		if(objMatch != null && objMatch[1] != undefined) {
+			var cnt = parseInt(dataModel["cmi.objectives._count"].data);
+			var idx = parseInt(objMatch[1]);
+
+			idx < cnt ? retVal = 0 : (idx == cnt ?  (dataModel["cmi.objectives._count"].data = idx + 1, retVal = 1) : retVal = -1);
+		} else if(int_crMatch != null && int_crMatch[2] != undefined) {
+
+			var cnt1 = parseInt(dataModel["cmi.interactions._count"].data);
+			var idx1 = parseInt(int_crMatch[1]);
+
+			if(dataModel["cmi.interactions."+idx1+".correct_responses._count"] == undefined) {
+				dataModel["cmi.interactions."+idx1+".correct_responses._count"] = ObjectHandler.clone(dataModel["cmi.interactions.n.correct_responses._count"]);
+			}
+
+			var cnt2 = parseInt(dataModel["cmi.interactions."+idx1+".correct_responses._count"].data);
+			var idx2 = parseInt(int_crMatch[2]);
+
+			idx1 < cnt1 ? retVal = 0 : (idx1 == cnt1 ?  (dataModel["cmi.interactions._count"].data = idx1 + 1, retVal = 1) : retVal = -1);
+
+			if(retVal != -1) {
+				idx2 < cnt2 ? retVal = 0 : (idx2 == cnt2 ?  (dataModel["cmi.interactions."+idx1+".correct_responses._count"].data = idx2 + 1, retVal = 1) : retVal = -1);
+			}
+		} else if(int_objMatch != null && int_objMatch[2] != undefined) {
+
+			var cnt1 = parseInt(dataModel["cmi.interactions._count"].data);
+			var idx1 = parseInt(int_objMatch[1]);
+
+			if(dataModel["cmi.interactions."+idx1+".objectives._count"] == undefined) {
+				dataModel["cmi.interactions."+idx1+".objectives._count"] = ObjectHandler.clone(dataModel["cmi.interactions.n.objectives._count"]);
+			}
+
+			var cnt2 = parseInt(dataModel["cmi.interactions."+idx1+".objectives._count"].data);
+			var idx2 = parseInt(int_objMatch[2]);
+
+			idx1 < cnt1 ? retVal = 0 : (idx1 == cnt1 ?  (dataModel["cmi.interactions._count"].data = idx1 + 1, retVal = 1) : retVal = -1);
+
+			if(retVal != -1) {
+				idx2 < cnt2 ? retVal = 0 : (idx2 == cnt2 ?  (dataModel["cmi.interactions."+idx1+".objectives._count"].data = idx2 + 1, retVal = 1) : retVal = -1);
+			}
+		} else if(int_Match != null && int_Match[1] != undefined) {
+			var cnt = parseInt(dataModel["cmi.interactions._count"].data);
+			var idx = parseInt(int_Match[1]);
+
+			idx < cnt ? retVal = 0 : (idx == cnt ?  (dataModel["cmi.interactions._count"].data = idx + 1, retVal = 1) : retVal = -1);
+		}
+
+		return retVal;
+	}
+
+	function addScormTimes (session_time, total_time) {
+
+		var total_time_hrs = null;
+		var total_time_min = null;
+		var total_time_sec = null;
+		var total_time_centisec = null;
+
+		var session_time_hrs = null;
+		var session_time_min = null;
+		var session_time_sec = null;
+		var session_time_centisec = null;
+
+		var tt_hrs;
+		var tt_min;
+		var tt_sec;
+		var tt_csc;
+
+		var st_hrs;
+		var st_min;
+		var st_sec;
+		var st_csc;
+
+		var ret_hrs;
+		var ret_min;
+		var ret_sec;
+		var ret_csc = -1;
+
+		var ret_H = "";
+		var ret_M = "";
+		var ret_S = "";
+		var ret_C = "";
+
+		var stk1 = total_time.split(":");
+		var stk2 = session_time.split(":");
+
+		// Tokenize total time
+		for(var i = 0; i < stk1.length; i++) {
+			total_time_hrs = stk1[i++];
+			total_time_min = stk1[i++];
+			total_time_sec = stk1[i++];
+			var stk3 = total_time_sec.split(".");
+
+			//total_time_sec = stk3.nextToken();
+			total_time_sec = stk3[0];
+			if(stk3.length > 1)
+				total_time_centisec = stk3[1];
+		}
+
+		// tokenize session time
+		for(var i = 0; i < stk2.length; i++) {
+			session_time_hrs = stk2[i++];
+			session_time_min = stk2[i++];
+			session_time_sec = stk2[i++];
+			var stk3 = session_time_sec.split(".");
+			session_time_sec = stk3[0];
+			if(stk3.length > 1)
+				session_time_centisec = stk3[1];
+		}
+
+		// add centisecs
+		if(total_time_centisec == null)
+			total_time_centisec = "00";
+		if(session_time_centisec == null)
+			session_time_centisec = "00";
+		tt_csc = parseInt(total_time_centisec,10);
+		st_csc = parseInt(session_time_centisec,10);
+		ret_csc = tt_csc + st_csc;
+
+		// add seconds
+		tt_sec = parseInt(total_time_sec,10);
+		st_sec = parseInt(session_time_sec,10);
+		ret_sec = tt_sec + st_sec;
+
+		if(ret_csc != -1 && ret_csc >= 100) {
+			var i = parseInt(ret_csc / 100);
+			ret_csc %= 100;
+			ret_sec += i;
+		}
+
+		// add minutes
+		tt_min = parseInt(total_time_min,10);
+		st_min = parseInt(session_time_min,10);
+		ret_min = tt_min + st_min;
+
+		if(ret_sec >= 60) {
+			var i = parseInt(ret_sec / 60);
+			ret_sec %= 60;
+			ret_min += i;
+		}
+
+		// add hours
+		tt_hrs = parseInt(total_time_hrs);
+		st_hrs = parseInt(session_time_hrs);
+
+		ret_hrs = tt_hrs + st_hrs;
+
+		if(ret_min >= 60) {
+			var i = parseInt(ret_min / 60);
+			ret_min %= 60;
+			ret_hrs += i;
+		}
+
+		if(ret_hrs < 10) ret_H = "000" + ret_hrs.toString()
+		else if(ret_hrs < 100) ret_H = "00" + ret_hrs.toString()
+		else if(ret_hrs < 1000) ret_H = "0" + ret_hrs.toString()
+		else ret_H = ret_hrs.toString();
+
+		if(ret_min < 10) ret_M = "0" + ret_min.toString(); else ret_M = ret_min.toString();
+		if(ret_sec < 10) ret_S = "0" + ret_sec.toString(); else ret_S = ret_sec.toString();
+
+		if(ret_csc != -1 && ret_csc < 10) ret_C = "0" + ret_csc; else ret_C = ret_csc.toString();
+
+		var ret_val = ret_H + ":" + ret_M + ":" + ret_S + (ret_C != ""?"."+ret_C:"");
+
+		return ret_val;
+	};
+
+	function log(msg) {
+		if (debugMode) {
+			// first try the firebug console logging
+			// alert the message in case of failure
+			try {
+				console.log(msg);
+			}
+			catch (e) {
+				alert(msg);
+			}
+		}
+	}
+
+	function alertError(errorCode) {
+		if(testMode && numberOfAlerts < maxAlerts && errorCode != ERRORCODE_0) {
+			numberOfAlerts++;
+			//temporary disable by mahmut
+			//alert(errorCode + " - " + ERROR_MESSAGES[errorCode]);
+		}
+	}
+
+	// this fixes an issue with the old method, ambiguous values
+	// with this test document.cookie.indexOf( name + "=" );
+	function getCookie( check_name ) {
+		// first we'll split this cookie up into name/value pairs
+		// note: document.cookie only returns name=value, not the other components
+		var a_all_cookies = document.cookie.split( ';' );
+		var a_temp_cookie = '';
+		var cookie_name = '';
+		var cookie_value = '';
+		var b_cookie_found = false; // set boolean t/f default f
+
+		for ( i = 0; i < a_all_cookies.length; i++ )
+		{
+			// now we'll split apart each name=value pair
+			a_temp_cookie = a_all_cookies[i].split( '=' );
+
+
+			// and trim left/right whitespace while we're at it
+			cookie_name = a_temp_cookie[0].replace(/^\s+|\s+$/g, '');
+
+			// if the extracted name matches passed check_name
+			if ( cookie_name == check_name )
+			{
+				b_cookie_found = true;
+				// we need to handle case where cookie has no value but exists (no = sign, that is):
+				if ( a_temp_cookie.length > 1 )
+				{
+					cookie_value = unescape( a_temp_cookie[1].replace(/^\s+|\s+$/g, '') );
+				}
+				// note that in cases where cookie is initialized but no value, null is returned
+				return cookie_value;
+				break;
+			}
+			a_temp_cookie = null;
+			cookie_name = '';
+		}
+		if ( !b_cookie_found )
+		{
+			return null;
+		}
+	}
+	
+	function getAllIframes(rootDocument){
+		var iframeArray;
+		try{
+			var iframes = rootDocument.getElementsByTagName('iframe');
+			iframeArray = Array.from(iframes);
+		
+			// İç içe iframeleri yakalamak için her bir iframe'i kontrol edelim
+			for (var i = 0; i < iframeArray.length; i++) {
+				var innerDoc = iframeArray[i].contentDocument || iframeArray[i].contentWindow.document;
+				// Eğer iç içe bir iframe varsa, onun içindeki iframe'leri de bulmak için fonksiyonu tekrar çağıralım
+				if (innerDoc) {
+					var innerIframes = getAllIframes(innerDoc);
+					iframeArray = iframeArray.concat(innerIframes);
+				}
+			}
+		}
+		catch{
+			console.error("getAllIframes error!");
+		}
+		
+		return iframeArray;
+	}
+
+	////// PUBLIC ////////
+
+	/*
+	 * Standard SCORM API Call Wrappers
+	 */
+	this.LMSInitialize = function (param) {
+
+		log("LMS Initialize");
+
+		var returnValue = "false"; // assume failure
+
+		dataModel = null;	// nullify dataModel to prevent wrong data caching
+		scoId = null;
+
+		// reset error code
+		resetErrorCode();
+
+		numberOfAlerts = 0;
+
+		// parameter should be empty string
+		if(param == "") {
+
+			// if LMS is already initialized, set the error
+			if(isInitialized == true) {
+				setErrorCode(ERRORCODE_101); // General Exception
+				isInitialized = false;
+			} else {
+
+				// load dataModel
+				var tmp = getDataModel();
+				dataModel = tmp.dataModel;
+				scoId = tmp.scoId;
+
+				isInitialized = true;
+				usageScoreValue = -1 ;
+				usageScoreId= "";
+				returnValue = "true";
+				isCompleted = false;
+			}
+		} else {
+			setErrorCode(ERRORCODE_201); // Invalid Argument
+		}
+
+		log(returnValue);
+		return returnValue;
+	};
+
+	this.LMSFinish = function (param) {
+
+		log("LMS Finish");
+
+		var returnValue = "false"; // assume failure
+
+		// reset error code
+		resetErrorCode();
+
+		// parameter should be empty string
+		if(param == "") {
+
+			// if LMS is not initialized, set the error
+			if(isInitialized == false) {
+				setErrorCode(ERRORCODE_301); // Not Initialized
+			} else {
+
+				isInitialized = false;
+
+				// TODO: set the exit status per SCORM requirements
+				var sessionTime = dataModel["cmi.core.session_time"].data;
+				var totalTime = dataModel["cmi.core.total_time"].data;
+
+				if(sessionTime != undefined && totalTime != undefined){
+					// set the total_time value
+					dataModel["cmi.core.total_time"].data = addScormTimes(sessionTime, totalTime);
+				}
+
+				// load user data
+				var userDataStr =  JSON.stringify(dataModel, function (key, value) {
+					return value;
+				});
+
+				var encodedUserDataStr = SebitBase64.encode(userDataStr);
+
+				isFinishRequest = true;
+
+				var result = commitChanges(encodedUserDataStr);
+
+				isCompleted = false;
+				returnValue = result + "";
+			}
+		} else {
+			setErrorCode(ERRORCODE_201); // Invalid Argument
+		}
+
+		log(returnValue);
+		return returnValue;
+	};
+
+	this.LMSGetValue = function (element) {
+
+		log("LMS GetValue - " + element);
+
+		var returnValue = ""; // assume failure
+
+		// reset error code
+		resetErrorCode();
+
+		if(isInitialized == false) {
+			setErrorCode(ERRORCODE_301); // Not Initialized
+		} else {
+			var r = new RegExp("[.]\\d+[.]", "g");
+			var element2 = String(element).replace(r, ".n.");
+
+			if(dataModel[element2] == undefined) {
+				setErrorCode(ERRORCODE_201);
+			} else {
+				if(dataModel[element2].readable == false) {
+					setErrorCode(ERRORCODE_404);
+				} else {
+					if(dataModel[element] == undefined || dataModel[element] == null) {
+						var rr = checkElementCount(element);
+						if (rr == -1) {
+							setErrorCode(ERRORCODE_201);
+						}
+						else {
+							dataModel[element] = ObjectHandler.clone(dataModel[element2]);
+						}
+					}
+					if(dataModel[element].data == "usageScore"){
+						usageScoreId = element.substring(0,element.length-3);
+					}
+					if(element == usageScoreId+".score.raw"){
+						if(usageScoreValue == -1){
+							usageScoreValue = dataModel[element].data;
+						}
+					}
+					returnValue = dataModel[element].data;
+					log(returnValue);
+				}
+			}
+		}
+
+		return returnValue;
+	};
+
+	this.LMSSetValue = function (element, value) {
+
+		log("LMS SetValue - " + element + " - " + value);
+
+		var returnValue = "false"; // assume failure
+
+		// reset error code
+		resetErrorCode();
+
+		if(isInitialized == false) {
+			lastErrorCode = ERRORCODE_301; // Not Initialized
+		} else {
+			var r = new RegExp("[.]\\d+[.]", "g");
+			var element2 = String(element).replace(r, ".n.");
+
+			if(dataModel[element2] == undefined) {
+				setErrorCode(ERRORCODE_201);
+			} else {
+				if(dataModel[element2].writable == false) {
+					if(isElementKeyword(element2)) {
+						setErrorCode(ERRORCODE_402);
+					} else {
+						setErrorCode(ERRORCODE_403);
+					}
+				} else {
+					if(String(value).match(dataModel[element2].validator) == null) {
+						setErrorCode(ERRORCODE_405);
+					} else {
+						if(dataModel[element] == undefined) {
+							var rr = checkElementCount(element);
+							if(rr == -1) {
+								setErrorCode(ERRORCODE_201);
+							} else {
+								dataModel[element] = ObjectHandler.clone(dataModel[element2]);
+								dataModel[element].data = value;
+								if(element == "cmi.core.lesson_status" && value == "completed"){
+									isCompleted = true;
+									lastUpdatedElement = "cmi.core.lesson_status";
+									// callCompleted function will invokeed. callCompleted function is triggered when sco completed. Then player will bind callCompleted event.
+									//$('body').trigger("callCompleted");
+									log("callCompleted Event Triggred");
+								}
+								returnValue = "true";
+								log(returnValue);
+							}
+						} else {
+							var previousValue = dataModel[element].data;
+							dataModel[element] = ObjectHandler.clone(dataModel[element2]);
+							dataModel[element].data = value;
+							if(element == "cmi.core.lesson_status" && value == "completed" && previousValue != "completed"){
+								isCompleted = true;
+								lastUpdatedElement = "cmi.core.lesson_status";
+								// callCompleted function will invokeed. callCompleted function is triggered when sco completed. Then player will bind callCompleted event.
+								//$('body').trigger("callCompleted");
+							}
+							returnValue = "true";
+							log(returnValue);
+						}
+					}
+				}
+			}
+		}
+
+		return returnValue;
+
+	};
+
+	this.LMSCommit = function (param) {
+
+		log("LMS Commit");
+		var returnValue = "false"; // assume failure
+
+		// reset error code
+		resetErrorCode();
+
+		// parameter should be empty string
+		if(param == "") {
+
+			// if LMS is not initialized, set the error
+			if(isInitialized == false) {
+				setErrorCode(ERRORCODE_301); // Not Initialized
+			} else {
+
+				// load user data
+				var userDataStr =  JSON.stringify(dataModel, function (key, value) {
+					return value;
+				});
+
+				var encodedUserDataStr = SebitBase64.encode(userDataStr);
+
+				var result = commitChanges(encodedUserDataStr);
+
+				if(lastUpdatedElement == "cmi.core.lesson_status")
+				{
+					lastUpdatedElement = "";
+					switch (result){
+					case 'true':
+					case '"true"':
+						if(dataModel.hasOwnProperty("cmi.core.lesson_status")){
+
+							var allIframes = getAllIframes(document);
+
+							if(dataModel["cmi.core.lesson_status"].data == "completed"){
+								// callCompleted function will invokeed.
+								// callCompleted function is triggered when sco
+								// completed. Then player will bind
+								// callCompleted event.
+								$('body').trigger("callCompleted");
+								
+								
+								if (allIframes && allIframes.length > 0){
+									allIframes.map(function(iframe){
+										iframe.contentWindow.postMessage("callCompleted", "*");
+									});
+								}
+							}
+
+							if(dataModel["cmi.core.lesson_status"].data == "incomplete"){
+								$('body').trigger("callInComplete");
+								if (allIframes && allIframes.length > 0){
+									allIframes.map(function(iframe){
+										iframe.contentWindow.postMessage("callInComplete", "*");
+									});
+								}
+								log("callInComplete Event Triggred");
+							}
+
+						}
+						break;
+					default :
+
+						$('body').trigger("scormErrorOccured", result);
+						break;
+					}
+				}
+
+				returnValue = result + "";
+			}
+		} else {
+			setErrorCode(ERRORCODE_201); // Invalid Argument
+		}
+
+		//return returnValue;
+		return (returnValue == 'true' || returnValue == '"true"') ? true : false;
+	};
+
+	this.LMSGetLastError = function () {
+
+		log("LMS GetLastError");
+		log(lastErrorCode);
+
+		return lastErrorCode;
+	};
+
+	this.LMSGetErrorString = function (errorCode) {
+
+		log("LMS GetErrorString");
+
+		return ERROR_MESSAGES[errorCode];
+	};
+
+	this.LMSGetDiagnostic = function (errorCode) {
+
+		log("LMS GetDiagnostic");
+
+		// no diagnostig message is provided for codes
+		// return an empty string for all codes
+		return "";
+	};
+
+	///
+	this.setRedirectUrl = function (u) {
+		redirectURL = u;
+	};
+
+	this.setDebugMode = function (mode) {
+		debugMode = mode;
+	};
+
+	this.setTestMode = function (mode) {
+		testMode = mode;
+	};
+
+	this.setMaxAlerts = function (num) {
+		maxAlerts = num;
+	};
+
+	this.getDM = function () {
+		return dataModel;
+	}
+
+	this.setDM = function (DM) {
+		dataModel = DM;
+	}
+
+	this.getScoId = function () {
+		return scoId;
+	}
+
+	this.setScoId = function (theScoId) {
+		scoId= theScoId;
+	}
+
+	this.getIsInitialized = function () {
+		return isInitialized;
+	}
+
+	this.setIsInitialized = function (flag) {
+		isInitialized=flag;
+	}
+
+	this.alertInitializedError = function (message) {
+		alert(message);
+	}
+};
+
+var API = new SCORM_API_12();

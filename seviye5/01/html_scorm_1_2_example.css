@@ -1,0 +1,108 @@
+html, body, div, span, applet, object, iframe,
+h1, h2, h3, h4, h5, h6, p, blockquote, pre,
+a, abbr, acronym, address, big, cite, code,
+del, dfn, em, font, img, ins, kbd, q, s, samp,
+small, strike, strong, sub, sup, tt, var,
+dl, dt, dd, ol, ul, li,
+fieldset, form, label, legend,
+table, caption, tbody, tfoot, thead, tr, th, td {
+	margin: 0;
+	padding: 0;
+	border: 0;
+	font-weight: inherit;
+	font-style: inherit;
+	font-size: 100%;
+	font-family: inherit;
+	vertical-align: baseline;
+}
+
+body {
+  	font-family: Helvetica, Arial, Verdana, sans-serif;
+ 	color: #434750;
+}
+
+body          { font-size: 75%; }   /* The font-size percentage is of 16px. (0.75 * 16px = 12px) */
+html > body   { font-size: 12px; }  /* All other browsers */
+
+h1,h2,h3,h4,h5,h6 { font-weight: normal; color: #434750; }
+
+h1 { font-size: 3em; line-height: 1; margin-bottom: 0.5em; }
+h2 { font-size: 2em; margin-bottom: 0.75em; }
+h3 { font-size: 1.5em; line-height: 1; margin-bottom: 1em; }
+h4 { font-size: 1.2em; line-height: 1.25; margin-bottom: 1.25em; height: 1.25em; }
+h5 { font-size: 1em; font-weight: bold; margin-bottom: 1.5em; }
+h6 { font-size: 1em; font-weight: bold; }
+
+h1 img, h2 img, h3 img,
+h4 img, h5 img, h6 img {
+  margin: 0;
+}
+
+
+
+
+
+html, body
+{
+	margin: 0;
+	padding: 0;
+	height: 100%;
+	width: 100%;
+
+}
+
+body
+{
+	-webkit-user-select: none;
+	-webkit-touch-callout: none;
+	/*background: #000;
+	font-family: Arial, Sans-Serif;
+	font-size: 14px;*/
+	/*overflow: hidden;*/
+	position: absolute;
+	left: 0px;
+	top: 0px;
+}
+
+
+img, div, html, body
+{
+	-webkit-user-select: none;
+	-khtml-user-select: none;
+	-moz-user-select: none;
+	-o-user-select: none;
+	user-select: none;
+	-webkit-tap-highlight-color: rgba(0, 0, 0, 0); /*-webkit-transform:translate3d(0,0,0)*/
+}
+
+#main
+{
+	position: absolute;
+	top:0;
+	left: 0;
+	background-color: lightgrey;
+	height: 100%;
+	width: 100%;
+}
+#myButton
+{
+	height:30px;
+	width: 300px;
+	background-color: orange;
+	opacity: 1;
+
+}
+
+#myBox
+{
+	position: absolute;
+	top:30%;
+	left: 30%;
+
+}
+
+#myText
+{
+	text-align: center;
+
+}

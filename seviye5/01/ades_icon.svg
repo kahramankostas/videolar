@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="44.025" height="33" viewBox="0 0 44.025 33">
+  <g id="ades_icon" transform="translate(-279.975 -584)">
+    <g id="Ellipse_6" data-name="Ellipse 6" transform="translate(291 587)" fill="none" stroke="#ffeb3b" stroke-width="1" stroke-dasharray="3">
+      <circle cx="15" cy="15" r="15" stroke="none"/>
+      <circle cx="15" cy="15" r="14.5" fill="none"/>
+    </g>
+    <g id="Ellipse_3" data-name="Ellipse 3" transform="translate(288 584)" fill="none" stroke="#93d0a5" stroke-width="1" stroke-dasharray="3">
+      <circle cx="15" cy="15" r="15" stroke="none"/>
+      <circle cx="15" cy="15" r="14.5" fill="none"/>
+    </g>
+    <path id="Path_1" data-name="Path 1" d="M2800,109l7.31,14.949,2.3-4.353,5.175,3.778,3.367-4.353-5.421-3.86,3.614-3.2-6.721-1.216Z" transform="translate(-2499.152 490.064)" fill="none" stroke="#d91b5c" stroke-linecap="round" stroke-linejoin="bevel" stroke-width="2"/>
+    <rect id="Rectangle_1" data-name="Rectangle 1" width="1.971" height="5.503" rx="0.986" transform="matrix(0.719, 0.695, -0.695, 0.719, 298.122, 601.862)" fill="#d91b5c"/>
+    <rect id="Rectangle_9" data-name="Rectangle 9" width="1.971" height="5.503" rx="0.986" transform="translate(297.671 599.54) rotate(90)" fill="#d91b5c"/>
+    <rect id="Rectangle_3" data-name="Rectangle 3" width="1.971" height="5.503" rx="0.986" transform="matrix(0.719, 0.695, -0.695, 0.719, 307.553, 592.005)" fill="#d91b5c"/>
+    <rect id="Rectangle_5" data-name="Rectangle 5" width="1.971" height="4.353" rx="0.986" transform="matrix(0.656, -0.755, 0.755, 0.656, 294.968, 595.17)" fill="#d91b5c"/>
+    <rect id="Rectangle_8" data-name="Rectangle 8" width="1.971" height="5.503" rx="0.986" transform="translate(300.365 590.918)" fill="#d91b5c"/>
+    <circle id="Ellipse_2" data-name="Ellipse 2" cx="2" cy="2" r="2" transform="translate(295 611)" fill="#f36b22"/>
+    <rect id="Rectangle_11" data-name="Rectangle 11" width="1.971" height="3.503" rx="0.986" transform="translate(287.995 591.326) rotate(120)" fill="#8a0236"/>
+    <rect id="Rectangle_12" data-name="Rectangle 12" width="1.971" height="3.503" rx="0.986" transform="translate(283.995 604.326) rotate(120)" fill="#ffeb3b"/>
+    <g id="Ellipse_4" data-name="Ellipse 4" transform="translate(320 589)" fill="none" stroke="#f36b22" stroke-width="1">
+      <circle cx="2" cy="2" r="2" stroke="none"/>
+      <circle cx="2" cy="2" r="1.5" fill="none"/>
+    </g>
+    <g id="Ellipse_5" data-name="Ellipse 5" transform="translate(305 587)" fill="none" stroke="#8a0236" stroke-width="0.5">
+      <circle cx="1.5" cy="1.5" r="1.5" stroke="none"/>
+      <circle cx="1.5" cy="1.5" r="1.25" fill="none"/>
+    </g>
+  </g>
+</svg>
