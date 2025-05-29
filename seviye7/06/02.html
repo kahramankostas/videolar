@@ -1,0 +1,206 @@
+<script type="text/javascript">
+        var gk_isXlsx = false;
+        var gk_xlsxFileLookup = {};
+        var gk_fileData = {};
+        function loadFileData(filename) {
+        if (gk_isXlsx && gk_xlsxFileLookup[filename]) {
+            try {
+                var workbook = XLSX.read(gk_fileData[filename], { type: 'base64' });
+                var firstSheetName = workbook.SheetNames[0];
+                var worksheet = workbook.Sheets[firstSheetName];
+
+                // Convert sheet to JSON to filter blank rows
+                var jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1, blankrows: false, defval: '' });
+                // Filter out blank rows (rows where all cells are empty, null, or undefined)
+                var filteredData = jsonData.filter(row =>
+                    row.some(cell => cell !== '' && cell !== null && cell !== undefined)
+                );
+
+                // Convert filtered JSON back to CSV
+                var csv = XLSX.utils.aoa_to_sheet(filteredData); // Create a new sheet from filtered array of arrays
+                csv = XLSX.utils.sheet_to_csv(csv, { header: 1 });
+                return csv;
+            } catch (e) {
+                console.error(e);
+                return "";
+            }
+        }
+        return gk_fileData[filename] || "";
+        }
+        </script><!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GELENEKTEN GELECEĞE - Bilmece Bildirmece</title>
+    <style>
+        body {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+            font-family: 'Arial', sans-serif;
+            color: #fff;
+        }
+        .video-container {
+            width: 80%;
+            max-width: 800px;
+            background: #fff;
+            border-radius: 12px;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+            overflow: hidden;
+            position: relative;
+            transition: transform 0.3s ease;
+        }
+        .video-container:hover {
+            transform: scale(1.02);
+        }
+        iframe {
+            width: 100%;
+            height: 450px;
+            border: none;
+            display: block;
+        }
+        .controls {
+            background: rgba(0, 0, 0, 0.7);
+            padding: 10px;
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            border-top: 1px solid #444;
+        }
+        .controls button {
+            background: #007bff;
+            border: none;
+            color: white;
+            padding: 8px 16px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: background 0.3s ease;
+        }
+        .controls button:hover {
+            background: #0056b3;
+        }
+        .home-icon {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            text-decoration: none;
+            font-size: 20px;
+            color: #fff;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            background: rgba(0, 0, 0, 0.5);
+            padding: 8px 12px;
+            border-radius: 20px;
+            transition: background 0.3s ease;
+        }
+        .home-icon:hover {
+            background: rgba(0, 0, 0, 0.8);
+        }
+        .home-icon img {
+            width: 24px;
+            height: 24px;
+            filter: invert(100%);
+        }
+        .title {
+            text-align: center;
+            font-size: 28px;
+            margin-bottom: 20px;
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
+        }
+        .volume-slider {
+            display: none;
+            position: absolute;
+            bottom: 50px;
+            width: 100px;
+            background: rgba(0, 0, 0, 0.7);
+            padding: 5px;
+            border-radius: 5px;
+        }
+        .volume-slider input {
+            width: 100%;
+        }
+        @media (max-width: 600px) {
+            .video-container {
+                width: 90%;
+            }
+            iframe {
+                height: 300px;
+            }
+            .title {
+                font-size: 22px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <a href="https://ulkemyanimda.eba.gov.tr/videolar/seviye7/index.html" class="home-icon">
+        <img src="https://img.icons8.com/ios-filled/50/ffffff/home.png" alt="Home">
+        Ana Sayfa
+    </a>
+    <h1 class="title">GELENEKTEN GELECEĞE<br>Bilmece Bildirmece</h1>
+    <div class="video-container">
+<iframe src="https://drive.google.com/file/d/1R4Arl1ICLSf8Hfgijbwc9WlSXmGg1Aqk/preview" width="640" height="480" allow="autoplay"></iframe>
+        <div class="controls">
+            <button id="playPauseBtn">Oynat</button>
+            <button id="volumeBtn">Ses Aç</button>
+            <div class="volume-slider" id="volumeSlider">
+                <input type="range" min="0" max="100" value="100" id="volumeRange">
+            </div>
+            <button id="fullScreenBtn">Tam Ekran</button>
+        </div>
+    </div>
+
+    <script>
+        const playPauseBtn = document.getElementById('playPauseBtn');
+        const volumeBtn = document.getElementById('volumeBtn');
+        const volumeSlider = document.getElementById('volumeSlider');
+        const volumeRange = document.getElementById('volumeRange');
+        const fullScreenBtn = document.getElementById('fullScreenBtn');
+        const videoContainer = document.querySelector('.video-container');
+        let isPlaying = false;
+        let isMuted = false;
+
+        // Note: Direct control of Google Drive iframe video is limited due to CORS and API restrictions.
+        // The following simulates basic controls; actual video control may require a different hosting solution.
+
+        playPauseBtn.addEventListener('click', () => {
+            isPlaying = !isPlaying;
+            playPauseBtn.textContent = isPlaying ? 'Duraklat' : 'Oynat';
+            // Simulate play/pause (actual implementation depends on video source)
+            console.log(isPlaying ? 'Video oynatılıyor' : 'Video duraklatıldı');
+        });
+
+        volumeBtn.addEventListener('click', () => {
+            volumeSlider.style.display = volumeSlider.style.display === 'block' ? 'none' : 'block';
+        });
+
+        volumeRange.addEventListener('input', (e) => {
+            const volume = e.target.value / 100;
+            // Simulate volume change
+            console.log(`Ses seviyesi: ${volume}`);
+        });
+
+        fullScreenBtn.addEventListener('click', () => {
+            if (!document.fullscreenElement) {
+                videoContainer.requestFullscreen().catch(err => {
+                    console.error(`Tam ekran hatası: ${err.message}`);
+                });
+            } else {
+                document.exitFullscreen();
+            }
+        });
+
+        // Update button text when exiting fullscreen
+        document.addEventListener('fullscreenchange', () => {
+            fullScreenBtn.textContent = document.fullscreenElement ? 'Tam Ekrandan Çık' : 'Tam Ekran';
+        });
+    </script>
+</body>
+</html>
