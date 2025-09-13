@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>8. Seviye Genel Ağ Kaynakçası ve Görsel Kaynakça</title>
+    <title>8. Seviye Genel Ağ Kaynakçası</title>
     <style>
         * {
             margin: 0;
@@ -195,14 +195,14 @@
 <body>
     <div class="container">
         <div class="header">
-            <h1>8. Seviye Genel Ağ Kaynakçası ve Görsel Kaynakça</h1>
+            <h1>8. Seviye Genel Ağ Kaynakçası</h1>
             <p>Kitap seviyeleri için kapsamlı kaynak yönetim sistemi</p>
         </div>
         
         <div class="content-area">
             <!-- Desktop/Android için standart iframe -->
             <div class="pdf-viewer-desktop" id="desktopViewer">
-                <iframe src="8.pdf" 
+                <iframe src="A.pdf" 
                         title="PDF Görüntüleyici"
                         allowfullscreen>
                 </iframe>
@@ -215,20 +215,20 @@
                     <p>iOS cihazlarda en iyi PDF görüntüleme deneyimi için aşağıdaki seçeneklerden birini kullanın:</p>
                     
                     <div class="pdf-actions">
-                        <a href="8.pdf" 
+                        <a href="A.pdf" 
                            target="_blank" 
                            rel="noopener noreferrer"
                            class="pdf-btn pdf-btn-primary">
                             📄 PDF'i Safari'de Aç
                         </a>
                         
-                        <a href="8.pdf" 
-                           download="8-seviye-kaynak.pdf"
+                        <a href="A.pdf" 
+                           download="Ag-kaynak.pdf"
                            class="pdf-btn pdf-btn-secondary">
                             💾 PDF'i İndir
                         </a>
                         
-                        <a href="https://docs.google.com/viewer?url=${encodeURIComponent(window.location.origin + '/8.pdf')}&embedded=true" 
+                        <a href="https://docs.google.com/viewer?url=${encodeURIComponent(window.location.origin + '/A.pdf')}&embedded=true" 
                            target="_blank" 
                            rel="noopener noreferrer"
                            class="pdf-btn pdf-btn-google"
@@ -265,7 +265,7 @@
         // PDF yolunu dinamik olarak ayarla
         function setupGoogleViewer() {
             const googleBtn = document.getElementById('googleViewer');
-            const currentURL = window.location.origin + window.location.pathname.replace(/\/[^/]*$/, '/8.pdf');
+            const currentURL = window.location.origin + window.location.pathname.replace(/\/[^/]*$/, '/A.pdf');
             const googleViewerURL = `https://docs.google.com/viewer?url=${encodeURIComponent(currentURL)}&embedded=true`;
             googleBtn.href = googleViewerURL;
         }
